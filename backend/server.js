@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const socketIo = require('socket.io');
+const cors = require('cors');
 const twilioConfig = require('./config');
 const twilioClient = require('./twilio-client');
 const client = new twilioClient();
@@ -17,6 +18,7 @@ const io = socketIo(server, {
 });
 
 // Middleware
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
