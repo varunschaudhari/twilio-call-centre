@@ -8,7 +8,7 @@ function Login() {
     const [state, updateState] = useImmer({
         phoneNumber: '',
         otpCode: '',
-        step: 'phone', // 'phone' or 'otp'
+        otpSent: false,
         showOtp: false
     });
 
@@ -44,10 +44,10 @@ function Login() {
                     onSuccess: (data) => {
                         console.log('OTP sent successfully:', data);
                         updateState(draft => {
-                            draft.step = 'otp';
+                            draft.otpSent = true;
                             draft.showOtp = true;
                         });
-                        alert('OTP sent to your phone number!');
+                        // Remove the alert - just update the state
                     },
                     onError: (errorInfo) => {
                         console.error('Failed to send OTP:', errorInfo);
@@ -76,11 +76,13 @@ function Login() {
                             // Store user session
                             localStorage.setItem('userPhone', state.phoneNumber);
                             localStorage.setItem('isAuthenticated', 'true');
-                            alert('Login successful! Welcome back.');
-                            // Redirect to dashboard or main app
+                            // Remove the alert - just redirect or update state
                             // window.location.href = '/dashboard';
                         } else {
-                            alert('Invalid OTP code. Please try again.');
+                            // Show error in the UI instead of alert
+                            updateState(draft => {
+                                draft.error = 'Invalid OTP code. Please try again.';
+                            });
                         }
                     },
                     onError: (errorInfo) => {
@@ -99,20 +101,13 @@ function Login() {
         });
     };
 
-    const goBackToPhone = () => {
-        // If user has entered OTP, ask for confirmation
-        if (state.otpCode.trim()) {
-            const confirmed = window.confirm('Are you sure you want to go back to login? Your OTP will be lost.');
-            if (!confirmed) {
-                return;
-            }
-        }
-
+    const resetForm = () => {
         updateState(draft => {
-            draft.step = 'phone';
+            draft.phoneNumber = '';
             draft.otpCode = '';
+            draft.otpSent = false;
             draft.showOtp = false;
-            draft.phoneNumber = ''; // Clear phone number to go back to login page
+            draft.error = '';
         });
     };
 
@@ -126,54 +121,33 @@ function Login() {
                                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                             </svg>
                         </div>
-                        <h2>{state.step === 'phone' ? 'Welcome Back' : 'Verify OTP'}</h2>
-                        <p>
-                            {state.step === 'phone'
-                                ? 'Enter your phone number to receive OTP'
-                                : `OTP sent to ${state.phoneNumber}`
-                            }
-                        </p>
+                        <h2>Welcome Back</h2>
+                        <p>Enter your phone number to receive OTP</p>
                     </div>
 
-                    {state.step === 'phone' ? (
-                        <form onSubmit={handleSendOtp} className="login-form">
-                            <div className="form-group">
-                                <label htmlFor="phoneNumber">Phone Number</label>
-                                <div className="input-wrapper">
-                                    <svg className="input-icon" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-                                    </svg>
-                                    <input
-                                        type="tel"
-                                        id="phoneNumber"
-                                        name="phoneNumber"
-                                        placeholder="Enter your phone number"
-                                        value={state.phoneNumber}
-                                        onChange={handlePhoneChange}
-                                        required
-                                        className="login-input"
-                                    />
-                                </div>
+                    <form onSubmit={state.otpSent ? handleVerifyOtp : handleSendOtp} className="login-form">
+                        <div className="form-group">
+                            <label htmlFor="phoneNumber">Phone Number</label>
+                            <div className="input-wrapper">
+                                <svg className="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
+                                </svg>
+                                <input
+                                    type="tel"
+                                    id="phoneNumber"
+                                    name="phoneNumber"
+                                    placeholder="Enter your phone number"
+                                    value={state.phoneNumber}
+                                    onChange={handlePhoneChange}
+                                    required
+                                    className="login-input"
+                                    disabled={state.otpSent}
+                                />
                             </div>
+                        </div>
 
-                            <button
-                                type="submit"
-                                className={`login-button ${loading ? 'loading' : ''}`}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <div className="spinner"></div>
-                                        Sending OTP...
-                                    </>
-                                ) : (
-                                    'Send OTP'
-                                )}
-                            </button>
-                        </form>
-                    ) : (
-                        <form onSubmit={handleVerifyOtp} className="login-form">
-                            <div className="form-group">
+                        {state.otpSent && (
+                            <div className="form-group otp-field">
                                 <label htmlFor="otpCode">OTP Code</label>
                                 <div className="input-wrapper">
                                     <svg className="input-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -205,35 +179,37 @@ function Login() {
                                     </button>
                                 </div>
                             </div>
+                        )}
 
-                            <button
-                                type="submit"
-                                className={`login-button ${loading ? 'loading' : ''}`}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <div className="spinner"></div>
-                                        Verifying...
-                                    </>
-                                ) : (
-                                    'Verify OTP'
-                                )}
-                            </button>
+                        <button
+                            type="submit"
+                            className={`login-button ${loading ? 'loading' : ''}`}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="spinner"></div>
+                                    {state.otpSent ? 'Verifying...' : 'Sending OTP...'}
+                                </>
+                            ) : (
+                                state.otpSent ? 'Verify OTP' : 'Send OTP'
+                            )}
+                        </button>
 
+                        {state.otpSent && (
                             <button
                                 type="button"
                                 className="back-to-login-button"
-                                onClick={goBackToPhone}
+                                onClick={resetForm}
                                 disabled={loading}
                             >
                                 <svg className="back-icon" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
                                 </svg>
-                                Back to Login
+                                Change Phone Number
                             </button>
-                        </form>
-                    )}
+                        )}
+                    </form>
 
                     {error && (
                         <div className="error-message">

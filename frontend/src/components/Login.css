@@ -89,6 +89,11 @@
 
 .form-group {
     margin-bottom: 1.5rem;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.form-group.otp-field {
+    animation: slideDown 0.4s ease-out;
 }
 
 .form-group label {
@@ -375,6 +380,18 @@
 
     75% {
         transform: translateX(5px);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
