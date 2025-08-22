@@ -24,13 +24,14 @@ api.interceptors.response.use(
 // Auth API endpoints (using Twilio SMS verification)
 export const authAPI = {
   // Send SMS verification code
-  sendVerification: (phoneNumber) => api.get('/login', {
-    params: { to: phoneNumber }
+  sendVerification: (phoneNumber) => api.post('/login', { 
+    to: phoneNumber 
   }),
-
+  
   // Verify OTP code
-  verifyOTP: (phoneNumber, code) => api.get('/verify', {
-    params: { to: phoneNumber, code }
+  verifyOTP: (phoneNumber, code) => api.post('/verify', { 
+    to: phoneNumber, 
+    code 
   }),
 };
 

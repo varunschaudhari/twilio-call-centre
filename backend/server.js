@@ -31,18 +31,78 @@ app.get('/', (req, res) => {
     });
 });
 
-app.get('/login', async (req, res) => {
-    const { to } = req.query;
-    const response = await client.sendVerifySMS("+919405769103", 'sms');
-    console.log(response);
-    res.json(response);
+app.post('/login', async (req, res) => {
+    const { to } = req.body;
+
+    // Validate phone number
+    if (!to) {
+        return res.status(400).json({
+            error: 'Phone number is required',
+            message: 'Please provide a phone number in the request body'
+        });
+    }
+
+    // Basic phone number validation (E.164 format)
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(to)) {
+        return res.status(400).json({
+            error: 'Invalid phone number format',
+            message: 'Phone number must be in E.164 format (e.g., +1234567890)'
+        });
+    }
+
+    try {
+        const response = await client.sendVerifySMS(to, 'sms');
+        console.log('SMS verification sent to:', to, response);
+        res.json(response);
+    } catch (error) {
+        console.error('Error sending SMS verification:', error);
+        res.status(500).json({
+            error: 'Failed to send SMS verification',
+            message: error.message
+        });
+    }
 });
 
-app.get('/verify', async (req, res) => {
-    const { to, code } = req.query;
-    const response = await client.verifyOTP("+919405769103", code);
-    console.log(response);
-    res.json(response);
+app.post('/verify', async (req, res) => {
+    const { to, code } = req.body;
+
+    // Validate parameters
+    if (!to || !code) {
+        return res.status(400).json({
+            error: 'Missing required parameters',
+            message: 'Please provide both "to" (phone number) and "code" (OTP) in the request body'
+        });
+    }
+
+    // Basic phone number validation
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(to)) {
+        return res.status(400).json({
+            error: 'Invalid phone number format',
+            message: 'Phone number must be in E.164 format (e.g., +1234567890)'
+        });
+    }
+
+    // Basic OTP validation
+    if (!/^\d{4,8}$/.test(code)) {
+        return res.status(400).json({
+            error: 'Invalid OTP format',
+            message: 'OTP must be 4-8 digits'
+        });
+    }
+
+    try {
+        const response = await client.verifyOTP(to, code);
+        console.log('OTP verification for:', to, response);
+        res.json(response);
+    } catch (error) {
+        console.error('Error verifying OTP:', error);
+        res.status(500).json({
+            error: 'Failed to verify OTP',
+            message: error.message
+        });
+    }
 });
 
 // Health check endpoint

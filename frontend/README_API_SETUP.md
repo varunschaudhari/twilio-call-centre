@@ -41,8 +41,8 @@ frontend/src/
 ### Authentication Flow
 Instead of JWT tokens, the app uses **Twilio SMS verification**:
 
-1. **Send OTP**: `GET /login?to={phoneNumber}`
-2. **Verify OTP**: `GET /verify?to={phoneNumber}&code={otp}`
+1. **Send OTP**: `POST /login` with `{ "to": "+1234567890" }`
+2. **Verify OTP**: `POST /verify` with `{ "to": "+1234567890", "code": "123456" }`
 
 ### Available API Endpoints
 
