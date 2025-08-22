@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test Client</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Socket.IO Test Client</h1>
+
+    <div id="status" class="status disconnected">
+        Disconnected
+    </div>
+
+    <div>
+        <button class="btn-primary" onclick="connect()">Connect</button>
+        <button class="btn-secondary" onclick="disconnect()">Disconnect</button>
+        <button class="btn-primary" onclick="joinRoom('test-room')">Join Test Room</button>
+        <button class="btn-secondary" onclick="leaveRoom('test-room')">Leave Test Room</button>
+    </div>
+
+    <h3>Event Log:</h3>
+    <div id="log" class="log"></div>
+
+    <script>
+        let socket;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            if (connected) {
+                statusDiv.className = 'status connected';
+                statusDiv.textContent = 'Connected';
+            } else {
+                statusDiv.className = 'status disconnected';
+                statusDiv.textContent = 'Disconnected';
+            }
+        }
+
+        function connect() {
+            if (socket) {
+                socket.disconnect();
+            }
+
+            socket = io('http://localhost:3000');
+
+            socket.on('connect', () => {
+                log('Connected to server');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                log('Disconnected from server');
+                updateStatus(false);
+            });
+
+            socket.on('welcome', (data) => {
+                log(`Welcome: ${data.message} (Socket ID: ${data.socketId})`);
+            });
+
+            socket.on('room-joined', (data) => {
+                log(`Joined room: ${data.room}`);
+            });
+
+            socket.on('room-left', (data) => {
+                log(`Left room: ${data.room}`);
+            });
+
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+
+        function joinRoom(room) {
+            if (socket && socket.connected) {
+                socket.emit('join-room', room);
+            } else {
+                log('Not connected to server');
+            }
+        }
+
+        function leaveRoom(room) {
+            if (socket && socket.connected) {
+                socket.emit('leave-room', room);
+            } else {
+                log('Not connected to server');
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = () => {
+            log('Page loaded, connecting to server...');
+            connect();
+        };
+    </script>
+</body>
+
+</html>
