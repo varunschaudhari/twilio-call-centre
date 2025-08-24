@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { getToken } from './auth';
 
 class SocketManager {
     constructor() {
@@ -18,6 +19,7 @@ class SocketManager {
         }
 
         try {
+            const token = getToken();
             this.socket = io(url, {
                 transports: ['websocket', 'polling'],
                 timeout: 20000,
@@ -26,7 +28,10 @@ class SocketManager {
                 reconnectionDelay: this.reconnectDelay,
                 reconnectionDelayMax: 5000,
                 maxReconnectionAttempts: this.maxReconnectAttempts,
-                autoConnect: true
+                autoConnect: true,
+                auth: {
+                    token: token
+                }
             });
 
             this.setupEventListeners();

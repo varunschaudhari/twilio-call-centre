@@ -2,6 +2,8 @@ import React from 'react';
 import { useImmer } from 'use-immer';
 import { authAPI } from '../services/api';
 import { useApi } from '../hooks/useApi';
+import { setToken, setUser } from '../utils/auth';
+import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 function Login() {
@@ -13,6 +15,7 @@ function Login() {
     });
 
     const { loading, error, executeRequest } = useApi();
+    const { login } = useAuth();
 
     const handlePhoneChange = (e) => {
         const value = e.target.value;
@@ -73,11 +76,26 @@ function Login() {
                     onSuccess: (data) => {
                         console.log('OTP verified successfully:', data);
                         if (data.status === 'approved') {
-                            // Store user session
+                            console.log('✅ OTP approved, setting up authentication...');
+
+                            // Store JWT token and user data
+                            if (data.token) {
+                                console.log('🔐 Setting JWT token...');
+                                setToken(data.token);
+                                setUser(data.user);
+
+                                // Update auth context
+                                console.log('👤 Updating auth context...');
+                                login(data.token, data.user);
+                            }
+
+                            // Store legacy session data for backward compatibility
                             localStorage.setItem('userPhone', state.phoneNumber);
                             localStorage.setItem('isAuthenticated', 'true');
-                            // Remove the alert - just redirect or update state
-                            // window.location.href = '/dashboard';
+
+                            console.log('✅ Authentication setup complete!');
+                            // Update auth context will automatically redirect to CallCenter
+                            // No need for window.location.href since we use conditional rendering
                         } else {
                             // Show error in the UI instead of alert
                             updateState(draft => {

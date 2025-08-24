@@ -37,7 +37,7 @@ function MyComponent() {
     const { isConnected, connect, disconnect, emit, on } = useSocket();
     
     // Auto-connects by default
-    // Manual connection: connect('http://localhost:3000')
+    // Manual connection: connect('http://localhost:3001')
 }
 ```
 
@@ -86,7 +86,7 @@ function CallCenterComponent() {
 const socket = useSocket();
 
 // Connect to server
-socket.connect('http://localhost:3000');
+socket.connect('http://localhost:3001');
 
 // Disconnect
 socket.disconnect();
@@ -173,7 +173,7 @@ const socket = io(url, {
 ### Environment Variables
 ```javascript
 // Add to .env file
-REACT_APP_SOCKET_URL=http://localhost:3000
+REACT_APP_SOCKET_URL=http://localhost:3001
 ```
 
 ## 🚀 Usage Examples

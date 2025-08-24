@@ -12,7 +12,7 @@ function ApiTest() {
 
     const testApiConnection = async () => {
         console.log('🔍 Testing API connection...');
-        console.log('📍 API Base URL:', process.env.REACT_APP_API_URL || 'http://localhost:3000');
+        console.log('📍 API Base URL:', process.env.REACT_APP_API_URL || 'http://localhost:3001');
         
         try {
             const response = await executeRequest(
@@ -40,7 +40,7 @@ function ApiTest() {
     const testDirectConnection = async () => {
         console.log('🔍 Testing direct connection...');
         try {
-            const response = await fetch('http://localhost:3000/health');
+            const response = await fetch('http://localhost:3001/health');
             const data = await response.json();
             console.log('✅ Direct fetch successful:', data);
             setHealthStatus(data);
@@ -88,8 +88,8 @@ function ApiTest() {
             <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#e9ecef', borderRadius: '5px' }}>
                 <h4>Connection Info:</h4>
                 <p><strong>Frontend URL:</strong> {window.location.origin}</p>
-                <p><strong>API Base URL:</strong> {process.env.REACT_APP_API_URL || 'http://localhost:3000'}</p>
-                <p><strong>Health Endpoint:</strong> {(process.env.REACT_APP_API_URL || 'http://localhost:3000') + '/health'}</p>
+                <p><strong>API Base URL:</strong> {process.env.REACT_APP_API_URL || 'http://localhost:3001'}</p>
+                <p><strong>Health Endpoint:</strong> {(process.env.REACT_APP_API_URL || 'http://localhost:3001') + '/health'}</p>
             </div>
 
             {error && (

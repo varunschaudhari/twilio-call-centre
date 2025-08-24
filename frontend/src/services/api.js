@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken, getAuthHeader, logout } from '../utils/auth';
 
 // Create axios instance with default configuration
 const api = axios.create({
@@ -9,30 +10,59 @@ const api = axios.create({
   },
 });
 
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const authHeader = getAuthHeader();
+    if (authHeader.Authorization) {
+      config.headers.Authorization = authHeader.Authorization;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Response interceptor to handle common errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    // Handle common errors without JWT redirect
+    // Handle authentication errors
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.error('Authentication error:', error);
+      logout();
+      // Redirect to login page
+      window.location.href = '/login';
+    }
     console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Auth API endpoints (using Twilio SMS verification)
+// Auth API endpoints (using Twilio SMS verification with JWT)
 export const authAPI = {
   // Send SMS verification code
-  sendVerification: (phoneNumber) => api.post('/login', { 
-    to: phoneNumber 
+  sendVerification: (phoneNumber) => api.post('/login', {
+    to: phoneNumber
   }),
-  
-  // Verify OTP code
-  verifyOTP: (phoneNumber, code) => api.post('/verify', { 
-    to: phoneNumber, 
-    code 
+
+  // Verify OTP code and get JWT token
+  verifyOTP: (phoneNumber, code) => api.post('/verify', {
+    to: phoneNumber,
+    code
   }),
+
+  // Get user profile (protected route)
+  getProfile: () => api.get('/api/profile'),
+
+  // Refresh JWT token
+  refreshToken: () => api.post('/api/refresh-token'),
+
+  // Logout
+  logout: () => api.post('/api/logout'),
 };
 
 // Call management API endpoints (to be implemented in backend)

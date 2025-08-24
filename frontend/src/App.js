@@ -1,16 +1,38 @@
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
+import CallCenter from './components/CallCenter';
+import ProtectedRoute from './components/ProtectedRoute';
 import ApiTest from './components/ApiTest';
 import SocketTest from './components/SocketTest';
 
-function App() {
+function AppContent() {
   const [showApiTest, setShowApiTest] = useState(false);
   const [showSocketTest, setShowSocketTest] = useState(false);
+  const { authenticated, loading } = useAuth();
+
+  console.log('🔄 AppContent render - authenticated:', authenticated, 'loading:', loading);
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* Main Login Component */}
-      <Login />
+      {authenticated ? (
+        <ProtectedRoute>
+          <CallCenter />
+        </ProtectedRoute>
+      ) : (
+        <Login />
+      )}
 
       {/* API Test Toggle */}
       <div style={{
@@ -19,7 +41,7 @@ function App() {
         right: '10px',
         zIndex: 1000
       }}>
-        <button
+        {/* <button
           onClick={() => setShowApiTest(!showApiTest)}
           style={{
             padding: '8px 12px',
@@ -33,9 +55,9 @@ function App() {
           }}
         >
           {showApiTest ? 'Hide API Test' : 'Show API Test'}
-        </button>
+        </button> */}
 
-        <button
+        {/* <button
           onClick={() => setShowSocketTest(!showSocketTest)}
           style={{
             padding: '8px 12px',
@@ -48,7 +70,7 @@ function App() {
           }}
         >
           {showSocketTest ? 'Hide Socket Test' : 'Show Socket Test'}
-        </button>
+        </button> */}
       </div>
 
       {/* API Test Component (conditionally shown) */}
@@ -87,10 +109,18 @@ function App() {
           zIndex: 999,
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
         }}>
-          <SocketTest />
+          {/* <SocketTest /> */}
         </div>
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -1,248 +1,146 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import socketManager from '../utils/socketio';
+import { useState, useEffect } from 'react';
+import { getToken } from '../utils/auth';
+import { io } from 'socket.io-client';
 
-export const useSocket = (autoConnect = true) => {
+export const useSocket = () => {
+    const [socket, setSocket] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [socketId, setSocketId] = useState(null);
-    const [connectionStatus, setConnectionStatus] = useState('disconnected');
-    const eventListenersRef = useRef(new Map());
+    const [connectionError, setConnectionError] = useState(null);
 
-    // Connect to socket
-    const connect = useCallback((url) => {
-        try {
-            socketManager.connect(url);
-        } catch (error) {
-            console.error('Failed to connect socket:', error);
+    useEffect(() => {
+        const token = getToken();
+
+        if (!token) {
+            console.log('No token available, skipping socket connection');
+            return;
         }
+
+        // Create socket connection
+        const newSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:3000', {
+            transports: ['websocket', 'polling'],
+            timeout: 20000,
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            autoConnect: true,
+            auth: {
+                token: token
+            }
+        });
+
+        // Connection events
+        newSocket.on('connect', () => {
+            console.log('✅ Socket connected:', newSocket.id);
+            setIsConnected(true);
+            setConnectionError(null);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+            console.log('❌ Socket disconnected:', reason);
+            setIsConnected(false);
+        });
+
+        newSocket.on('connect_error', (error) => {
+            console.error('🔌 Socket connection error:', error);
+            setConnectionError(error.message);
+            setIsConnected(false);
+        });
+
+        newSocket.on('reconnect', (attemptNumber) => {
+            console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+            setIsConnected(true);
+            setConnectionError(null);
+        });
+
+        newSocket.on('reconnect_error', (error) => {
+            console.error('🔄 Socket reconnection error:', error);
+            setConnectionError(error.message);
+        });
+
+        newSocket.on('reconnect_failed', () => {
+            console.error('🔄 Socket reconnection failed');
+            setConnectionError('Failed to reconnect to server');
+        });
+
+        // Welcome message
+        newSocket.on('welcome', (data) => {
+            console.log('👋 Welcome message:', data);
+        });
+
+        // Set socket instance
+        setSocket(newSocket);
+
+        // Cleanup on unmount
+        return () => {
+            console.log('🔌 Cleaning up socket connection');
+            newSocket.disconnect();
+        };
     }, []);
 
-    // Disconnect socket
-    const disconnect = useCallback(() => {
-        socketManager.disconnect();
-    }, []);
-
-    // Emit event
-    const emit = useCallback((event, data) => {
-        return socketManager.emit(event, data);
-    }, []);
+    // Emit function wrapper
+    const emit = (event, data) => {
+        if (socket && isConnected) {
+            socket.emit(event, data);
+            return true;
+        } else {
+            console.warn('Socket not connected, cannot emit:', event);
+            return false;
+        }
+    };
 
     // Join room
-    const joinRoom = useCallback((roomName) => {
-        return socketManager.joinRoom(roomName);
-    }, []);
+    const joinRoom = (roomName) => {
+        return emit('join-room', roomName);
+    };
 
     // Leave room
-    const leaveRoom = useCallback((roomName) => {
-        return socketManager.leaveRoom(roomName);
-    }, []);
+    const leaveRoom = (roomName) => {
+        return emit('leave-room', roomName);
+    };
 
-    // Add event listener
-    const on = useCallback((event, callback) => {
-        // Store the callback reference for cleanup
-        if (!eventListenersRef.current.has(event)) {
-            eventListenersRef.current.set(event, []);
-        }
-        eventListenersRef.current.get(event).push(callback);
-        
-        // Add listener to socket manager
-        socketManager.on(event, callback);
-    }, []);
+    // Update agent status
+    const updateAgentStatus = (status) => {
+        return emit('update-agent-status', { status });
+    };
 
-    // Remove event listener
-    const off = useCallback((event, callback) => {
-        socketManager.off(event, callback);
-        
-        // Remove from our ref
-        if (eventListenersRef.current.has(event)) {
-            const listeners = eventListenersRef.current.get(event);
-            const index = listeners.indexOf(callback);
-            if (index > -1) {
-                listeners.splice(index, 1);
-            }
-        }
-    }, []);
+    // Accept call
+    const acceptCall = (callId) => {
+        return emit('accept-call', { callId });
+    };
 
-    // Call center specific methods
-    const joinCallCenter = useCallback((agentId) => {
-        return socketManager.joinCallCenter(agentId);
-    }, []);
+    // End call
+    const endCall = (callId) => {
+        return emit('end-call', { callId });
+    };
 
-    const updateAgentStatus = useCallback((agentId, status) => {
-        return socketManager.updateAgentStatus(agentId, status);
-    }, []);
+    // Transfer call
+    const transferCall = (callId, target, reason) => {
+        return emit('transfer-call', { callId, target, reason });
+    };
 
-    const handleIncomingCall = useCallback((callData) => {
-        return socketManager.handleIncomingCall(callData);
-    }, []);
+    // Toggle mute
+    const toggleMute = (callId, muted) => {
+        return emit('toggle-mute', { callId, muted });
+    };
 
-    const endCall = useCallback((callId) => {
-        return socketManager.endCall(callId);
-    }, []);
-
-    const transferCall = useCallback((callId, targetAgentId) => {
-        return socketManager.transferCall(callId, targetAgentId);
-    }, []);
-
-    // Get connection status
-    const getStatus = useCallback(() => {
-        return socketManager.getConnectionStatus();
-    }, []);
-
-    // Update connection status
-    const updateConnectionStatus = useCallback(() => {
-        const status = socketManager.getConnectionStatus();
-        setIsConnected(status.isConnected);
-        setSocketId(status.socketId);
-        setConnectionStatus(status.isConnected ? 'connected' : 'disconnected');
-    }, []);
-
-    // Setup connection status listeners
-    useEffect(() => {
-        const handleConnect = () => {
-            updateConnectionStatus();
-        };
-
-        const handleDisconnect = () => {
-            updateConnectionStatus();
-        };
-
-        // Listen for connection status changes
-        socketManager.on('connect', handleConnect);
-        socketManager.on('disconnect', handleDisconnect);
-
-        // Initial status check
-        updateConnectionStatus();
-
-        // Auto-connect if enabled
-        if (autoConnect && !socketManager.isConnected) {
-            connect();
-        }
-
-        // Cleanup function
-        return () => {
-            socketManager.off('connect', handleConnect);
-            socketManager.off('disconnect', handleDisconnect);
-            
-            // Clean up all event listeners
-            eventListenersRef.current.forEach((listeners, event) => {
-                listeners.forEach(callback => {
-                    socketManager.off(event, callback);
-                });
-            });
-            eventListenersRef.current.clear();
-        };
-    }, [autoConnect, connect, updateConnectionStatus]);
+    // Toggle hold
+    const toggleHold = (callId, onHold) => {
+        return emit('toggle-hold', { callId, onHold });
+    };
 
     return {
-        // Connection state
+        socket,
         isConnected,
-        socketId,
-        connectionStatus,
-        
-        // Connection methods
-        connect,
-        disconnect,
-        getStatus,
-        
-        // Event methods
+        connectionError,
         emit,
-        on,
-        off,
-        
-        // Room methods
         joinRoom,
         leaveRoom,
-        
-        // Call center methods
-        joinCallCenter,
         updateAgentStatus,
-        handleIncomingCall,
+        acceptCall,
         endCall,
         transferCall,
-        
-        // Socket manager instance
-        socketManager
-    };
-};
-
-// Hook for specific call center events
-export const useCallCenterSocket = () => {
-    const socket = useSocket();
-    const [incomingCalls, setIncomingCalls] = useState([]);
-    const [activeCalls, setActiveCalls] = useState([]);
-    const [agentStatus, setAgentStatus] = useState('offline');
-    const [queueStatus, setQueueStatus] = useState({ length: 0, waitTime: 0 });
-    const [dashboardStats, setDashboardStats] = useState({});
-
-    useEffect(() => {
-        // Listen for incoming calls
-        socket.on('call-incoming', (data) => {
-            setIncomingCalls(prev => [...prev, data]);
-        });
-
-        // Listen for call ended
-        socket.on('call-ended', (data) => {
-            setActiveCalls(prev => prev.filter(call => call.id !== data.callId));
-            setIncomingCalls(prev => prev.filter(call => call.id !== data.callId));
-        });
-
-        // Listen for call transferred
-        socket.on('call-transferred', (data) => {
-            setActiveCalls(prev => prev.map(call => 
-                call.id === data.callId ? { ...call, ...data } : call
-            ));
-        });
-
-        // Listen for agent status updates
-        socket.on('agent-status-updated', (data) => {
-            setAgentStatus(data.status);
-        });
-
-        // Listen for queue updates
-        socket.on('queue-updated', (data) => {
-            setQueueStatus(data);
-        });
-
-        // Listen for dashboard stats updates
-        socket.on('dashboard-stats-updated', (data) => {
-            setDashboardStats(data);
-        });
-
-        return () => {
-            // Cleanup is handled by useSocket hook
-        };
-    }, [socket]);
-
-    return {
-        ...socket,
-        incomingCalls,
-        activeCalls,
-        agentStatus,
-        queueStatus,
-        dashboardStats,
-        
-        // Helper methods
-        acceptCall: (callId) => {
-            socket.handleIncomingCall({ callId, action: 'accept' });
-            setIncomingCalls(prev => prev.filter(call => call.id !== callId));
-            setActiveCalls(prev => [...prev, { id: callId, status: 'active' }]);
-        },
-        
-        rejectCall: (callId) => {
-            socket.handleIncomingCall({ callId, action: 'reject' });
-            setIncomingCalls(prev => prev.filter(call => call.id !== callId));
-        },
-        
-        setAgentAvailable: () => {
-            socket.updateAgentStatus('current', 'available');
-        },
-        
-        setAgentBusy: () => {
-            socket.updateAgentStatus('current', 'busy');
-        },
-        
-        setAgentOffline: () => {
-            socket.updateAgentStatus('current', 'offline');
-        }
+        toggleMute,
+        toggleHold
     };
 };

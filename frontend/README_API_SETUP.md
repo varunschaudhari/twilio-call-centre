@@ -12,7 +12,7 @@ npm install axios use-immer
 ```
 
 ### 2. Backend Connection
-The frontend is configured to connect to the backend at `http://localhost:3000` (matching your backend server).
+The frontend is configured to connect to the backend at `http://localhost:3001` (matching your backend server).
 
 ## 📁 File Structure
 
@@ -34,7 +34,7 @@ frontend/src/
 ## 🔧 API Configuration
 
 ### Base Configuration (`src/services/api.js`)
-- **Base URL**: `http://localhost:3000` (matches your backend)
+- **Base URL**: `http://localhost:3001` (matches your backend)
 - **Timeout**: 10 seconds
 - **Error Handling**: Automatic error parsing and logging
 
@@ -152,13 +152,13 @@ The `ApiTest` component automatically tests the backend connection:
 ### Manual Testing
 ```javascript
 // Test health endpoint
-curl http://localhost:3000/health
+curl http://localhost:3001/health
 
 // Test login endpoint
-curl "http://localhost:3000/login?to=+1234567890"
+curl "http://localhost:3001/login?to=+1234567890"
 
 // Test verify endpoint
-curl "http://localhost:3000/verify?to=+1234567890&code=123456"
+curl "http://localhost:3001/verify?to=+1234567890&code=123456"
 ```
 
 ## 🔒 Authentication Flow
@@ -203,7 +203,7 @@ const userPhone = localStorage.getItem('userPhone');
 ### Environment Variables
 ```bash
 # API Configuration
-REACT_APP_API_URL=http://localhost:3000
+REACT_APP_API_URL=http://localhost:3001
 
 # Twilio Configuration
 REACT_APP_TWILIO_ACCOUNT_SID=your_account_sid
@@ -215,7 +215,7 @@ REACT_APP_TWILIO_VERIFY_SERVICE=your_verify_service_sid
 ```javascript
 import { API_CONFIG } from '../config/api.config';
 
-console.log(API_CONFIG.BASE_URL); // http://localhost:3000
+console.log(API_CONFIG.BASE_URL); // http://localhost:3001
 console.log(API_CONFIG.TIMEOUT);  // 10000
 ```
 

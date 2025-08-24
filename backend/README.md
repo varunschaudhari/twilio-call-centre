@@ -106,7 +106,7 @@ npm start
 
 2. **Test HTTP endpoints:**
    ```bash
-   curl http://localhost:3000/health
+   curl http://localhost:3001/health
    ```
 
 3. **Test Socket.IO:**
